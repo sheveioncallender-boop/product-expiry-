@@ -16,6 +16,10 @@
                 <field name="spx_barcode" readonly="1" optional="hide"/>
                 <field name="name" readonly="1" string="Batch"/>
                 <field name="expiration_date" string="Expiry Date"/>
+                <field name="use_expiration_date" column_invisible="True"/>
+                <field name="use_date" column_invisible="True"/>
+                <field name="removal_date" column_invisible="True"/>
+                <field name="alert_date" column_invisible="True"/>
                 <field name="spx_days_to_expiry" readonly="1" invisible="not expiration_date"/>
                 <field name="spx_expiry_status" readonly="1" widget="badge"
                        decoration-danger="spx_expiry_status == 'expired'"

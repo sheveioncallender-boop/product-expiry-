@@ -34,6 +34,10 @@
                             <field name="product_id" readonly="1" string="Product / Variant"/>
                             <field name="name" readonly="1" string="Batch"/>
                             <field name="expiration_date" string="Expiry Date"/>
+                            <field name="use_expiration_date" column_invisible="True"/>
+                            <field name="use_date" column_invisible="True"/>
+                            <field name="removal_date" column_invisible="True"/>
+                            <field name="alert_date" column_invisible="True"/>
                             <field name="product_qty" readonly="1" string="On Hand"/>
                             <field name="product_uom_id" readonly="1" string="Unit"/>
                             <field name="spx_days_to_expiry" readonly="1" invisible="not expiration_date"/>

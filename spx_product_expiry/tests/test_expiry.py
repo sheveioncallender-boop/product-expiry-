@@ -7,7 +7,7 @@ from freezegun import freeze_time
 
 from odoo import fields
 from odoo.exceptions import AccessError, UserError, ValidationError
-from odoo.tests import TransactionCase, tagged
+from odoo.tests import Form, TransactionCase, tagged
 from odoo.tests.common import new_test_user
 
 
@@ -110,7 +110,8 @@ class TestProductExpiry(TransactionCase):
         count = self.env["stock.move"].search_count([])
         removal_before = lot.removal_date
         expiry_before = lot.expiration_date
-        lot.with_user(self.stock_user).write({"expiration_date": expiry_before + timedelta(days=4)})
+        with Form(lot.with_user(self.stock_user), view="stock.view_production_lot_form") as form:
+            form.expiration_date = expiry_before + timedelta(days=4)
         self.env.flush_all()
         self.env.cr.precommit.run()
         self.assertEqual(lot.product_qty, 5)
