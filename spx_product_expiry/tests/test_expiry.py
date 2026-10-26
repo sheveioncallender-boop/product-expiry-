@@ -118,6 +118,13 @@ class TestProductExpiry(TransactionCase):
         self.assertEqual(self.env["stock.move"].search_count([]), count)
         self.assertEqual(lot.removal_date, removal_before + timedelta(days=4))
         self.assertTrue(lot.message_ids.mapped("tracking_value_ids").filtered(lambda v: v.field_id.name == "expiration_date"))
+        # Exercise the new product-page editor, including native dependent dates.
+        with Form(self.product.product_tmpl_id, view="product.product_template_only_form_view") as product_form:
+            with product_form.spx_expiry_lot_ids.edit(0) as batch_form:
+                batch_form.expiration_date = expiry_before + timedelta(days=6)
+        self.assertEqual(lot.expiration_date, expiry_before + timedelta(days=6))
+        self.assertEqual(lot.removal_date, removal_before + timedelta(days=6))
+        self.assertEqual(lot.product_qty, 5)
 
     def test_missing_dates_and_duplicate_product(self):
         lot = self._lot("NO-DATE", False)
