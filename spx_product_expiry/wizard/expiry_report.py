@@ -24,6 +24,14 @@ class ExpiryReportWizard(models.TransientModel):
     file_data = fields.Binary(string="CSV Report", readonly=True, attachment=False)
     file_name = fields.Char(readonly=True)
 
+    @api.onchange("period", "category_id", "date_from", "date_to", "in_stock_only")
+    def _onchange_filters(self):
+        self.file_data = False
+        self.file_name = False
+        if self.period == "no_date":
+            self.date_from = False
+            self.date_to = False
+
     @api.constrains("date_from", "date_to", "period")
     def _check_dates(self):
         for wizard in self:

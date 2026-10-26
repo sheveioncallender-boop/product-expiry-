@@ -163,6 +163,12 @@ class TestProductExpiry(TransactionCase):
             self.Wizard.create({"date_from": "2026-12-01", "date_to": "2026-11-01"})
         with self.assertRaises(ValidationError), self.cr.savepoint():
             self.Wizard.create({"period": "no_date", "date_to": "2026-11-01"})
+        with Form(self.Wizard) as report_form:
+            report_form.date_from = "2026-10-01"
+            report_form.date_to = "2026-11-01"
+            report_form.period = "no_date"
+            self.assertFalse(report_form.date_from)
+            self.assertFalse(report_form.date_to)
 
     def test_non_inventory_user_cannot_use_reports(self):
         with self.assertRaises(AccessError):
