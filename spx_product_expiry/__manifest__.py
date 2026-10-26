@@ -1,0 +1,20 @@
+{
+    "name": "Spxcorp Product Expiry",
+    "summary": "Simple product expiry screens and reports using native Odoo batches",
+    "version": "19.0.1.0.0",
+    "category": "Inventory/Inventory",
+    "author": "Spxcorp Limited",
+    "website": "https://github.com/sheveioncallender-boop/product-expiry-",
+    "license": "LGPL-3",
+    "depends": ["product_expiry"],
+    "data": [
+        "security/ir.model.access.csv",
+        "wizard/expiry_report_views.xml",
+        "views/stock_lot_views.xml",
+        "views/product_views.xml",
+        "report/expiry_report.xml",
+        "views/menus.xml",
+    ],
+    "installable": True,
+    "application": True,
+}

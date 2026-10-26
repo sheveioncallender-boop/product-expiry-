@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="product_template_form_expiry" model="ir.ui.view">
+        <field name="name">product.template.form.spx.expiry</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_only_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='general_information']" position="inside">
+                <group string="Product Expiry" name="spx_product_expiry" groups="stock.group_stock_user" invisible="type != 'consu'">
+                    <group>
+                        <field name="spx_next_expiration_date" readonly="1"/>
+                        <field name="spx_stocked_lot_count" readonly="1"/>
+                        <field name="spx_undated_lot_count" readonly="1"/>
+                    </group>
+                    <group>
+                        <button name="action_spx_expiry_batches" type="object" string="Manage Expiry Dates" icon="fa-calendar" class="btn-secondary"/>
+                        <div class="text-muted" colspan="2">
+                            Next expiry uses batches with stock, including expired batches.
+                            Dates below belong to the actual Odoo lots; quantities are read-only.
+                        </div>
+                    </group>
+                </group>
+                <div groups="stock.group_stock_user" invisible="type != 'consu'" class="mb-3">
+                    <div class="alert alert-info" role="alert" invisible="tracking != 'none' and use_expiration_date">
+                        Expiry tracking uses Odoo's native lots. Review the product's inventory tracking and expiration settings before receiving batches. Existing stock is not converted automatically.
+                    </div>
+                    <field name="use_expiration_date" invisible="1"/>
+                    <field name="tracking" invisible="1"/>
+                    <field name="spx_expiry_lot_ids" nolabel="1" mode="list" invisible="tracking == 'none'">
+                        <list string="Expiry Batches (All Variants)" editable="bottom" create="0" delete="0" default_order="expiration_date asc, name" limit="20"
+                              decoration-danger="spx_expiry_status == 'expired' and product_qty &gt; 0"
+                              decoration-warning="spx_expiry_status in ('today', 'soon') and product_qty &gt; 0"
+                              decoration-muted="product_qty &lt;= 0">
+                            <field name="product_id" readonly="1" string="Product / Variant"/>
+                            <field name="name" readonly="1" string="Batch"/>
+                            <field name="expiration_date" string="Expiry Date"/>
+                            <field name="product_qty" readonly="1" string="On Hand"/>
+                            <field name="product_uom_id" readonly="1" string="Unit"/>
+                            <field name="spx_days_to_expiry" readonly="1" invisible="not expiration_date"/>
+                            <field name="spx_expiry_status" readonly="1" widget="badge"/>
+                            <field name="company_id" readonly="1" groups="base.group_multi_company" optional="hide"/>
+                            <button name="action_spx_open_lot" type="object" icon="fa-external-link" title="Open native batch"/>
+                        </list>
+                    </field>
+                    <p class="text-muted">Receive new batches and adjust quantities through the normal Inventory process. All variants are shown; empty batches remain available for reference. A missing expiry date does not mean a batch is safe to sell.</p>
+                </div>
+            </xpath>
+        </field>
+    </record>
+</odoo>

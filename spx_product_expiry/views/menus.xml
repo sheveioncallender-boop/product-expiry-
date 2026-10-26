@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_expiry_root" name="Expiry" parent="stock.menu_stock_root" sequence="5" groups="stock.group_stock_user"/>
+    <menuitem id="menu_expiry_batches" name="Expiry Tracking" parent="menu_expiry_root" action="action_expiry_batches" sequence="10"/>
+    <menuitem id="menu_expiry_report" name="Expiry Report" parent="menu_expiry_root" action="action_expiry_report_wizard" sequence="20"/>
+    <menuitem id="menu_expiry_setup_review" name="Products Without Expiry Tracking" parent="menu_expiry_root" action="action_expiry_setup_review" sequence="30"/>
+</odoo>

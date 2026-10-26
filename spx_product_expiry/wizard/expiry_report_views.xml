@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_expiry_report_wizard" model="ir.ui.view">
+        <field name="name">spx.expiry.report.wizard.form</field>
+        <field name="model">spx.expiry.report.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Product Expiry Report">
+                <group>
+                    <group>
+                        <field name="period"/>
+                        <field name="category_id" options="{'no_create': True}"/>
+                        <field name="in_stock_only"/>
+                    </group>
+                    <group>
+                        <field name="date_from" invisible="period == 'no_date'"/>
+                        <field name="date_to" invisible="period == 'no_date'"/>
+                    </group>
+                </group>
+                <field name="lot_ids" widget="many2many_tags" invisible="not lot_ids" readonly="1"/>
+                <p class="text-muted">Filters apply together. Upcoming periods include today and exclude already-expired batches. Stock balances respect your current company and stock context. CSV downloads are a snapshot; generate again after changing filters.</p>
+                <group invisible="not file_data">
+                    <field name="file_name" invisible="1"/>
+                    <field name="file_data" filename="file_name" readonly="1"/>
+                </group>
+                <footer>
+                    <button name="action_pdf" type="object" string="Print PDF" class="btn-primary"/>
+                    <button name="action_csv" type="object" string="Generate CSV"/>
+                    <button name="action_preview" type="object" string="View Batches"/>
+                    <button string="Close" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+    <record id="action_expiry_report_wizard" model="ir.actions.act_window">
+        <field name="name">Expiry Report</field>
+        <field name="res_model">spx.expiry.report.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+</odoo>

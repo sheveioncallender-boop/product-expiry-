@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_expiry_batch_list" model="ir.ui.view">
+        <field name="name">stock.lot.spx.expiry.list</field>
+        <field name="model">stock.lot</field>
+        <field name="arch" type="xml">
+            <list string="Product Expiry" editable="bottom" create="0" delete="0" default_order="expiration_date asc, product_id, name"
+                  decoration-danger="spx_expiry_status == 'expired' and product_qty &gt; 0"
+                  decoration-warning="spx_expiry_status in ('today', 'soon') and product_qty &gt; 0"
+                  decoration-muted="product_qty &lt;= 0">
+                <header>
+                    <button name="action_spx_expiry_report" type="object" string="Expiry Report" display="always"/>
+                </header>
+                <field name="product_id" readonly="1"/>
+                <field name="spx_reference" readonly="1" optional="show"/>
+                <field name="spx_barcode" readonly="1" optional="hide"/>
+                <field name="name" readonly="1" string="Batch"/>
+                <field name="expiration_date" string="Expiry Date"/>
+                <field name="spx_days_to_expiry" readonly="1" invisible="not expiration_date"/>
+                <field name="spx_expiry_status" readonly="1" widget="badge"
+                       decoration-danger="spx_expiry_status == 'expired'"
+                       decoration-warning="spx_expiry_status in ('today', 'soon')"
+                       decoration-muted="spx_expiry_status == 'no_date'"/>
+                <field name="product_qty" readonly="1" string="On Hand"/>
+                <field name="product_uom_id" readonly="1" string="Unit"/>
+                <field name="spx_category_id" readonly="1" optional="hide"/>
+                <field name="company_id" readonly="1" groups="base.group_multi_company" optional="hide"/>
+                <button name="action_spx_open_lot" type="object" icon="fa-external-link" title="Open native batch"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_expiry_batch_search" model="ir.ui.view">
+        <field name="name">stock.lot.spx.expiry.search</field>
+        <field name="model">stock.lot</field>
+        <field name="arch" type="xml">
+            <search string="Product Expiry">
+                <field name="product_id"/>
+                <field name="name" string="Batch"/>
+                <field name="spx_reference"/>
+                <field name="spx_barcode"/>
+                <field name="spx_category_id"/>
+                <filter name="in_stock" string="In Stock" domain="[('product_qty', '&gt;', 0)]"/>
+                <separator/>
+                <filter name="expired" string="Expired" domain="[('spx_expiry_status', '=', 'expired')]"/>
+                <filter name="today" string="Expires Today" domain="[('spx_expiry_status', '=', 'today')]"/>
+                <filter name="next30" string="Next 30 Days" domain="[('expiration_date', '&gt;', 'now'), ('expiration_date', '&lt;', 'today +31d')]"/>
+                <filter name="next60" string="Next 60 Days" domain="[('expiration_date', '&gt;', 'now'), ('expiration_date', '&lt;', 'today +61d')]"/>
+                <filter name="next90" string="Next 90 Days" domain="[('expiration_date', '&gt;', 'now'), ('expiration_date', '&lt;', 'today +91d')]"/>
+                <filter name="no_date" string="Missing Expiry Date" domain="[('expiration_date', '=', False)]"/>
+                <separator/>
+                <filter name="expiry_date" string="Expiry Date" date="expiration_date"/>
+                <group>
+                    <filter name="by_product" string="Product" context="{'group_by': 'product_id'}"/>
+                    <filter name="by_category" string="Category" context="{'group_by': 'spx_category_id'}"/>
+                    <filter name="by_expiry_month" string="Expiry Month" context="{'group_by': 'expiration_date:month'}"/>
+                    <filter name="by_company" string="Company" context="{'group_by': 'company_id'}" groups="base.group_multi_company"/>
+                </group>
+            </search>
+        </field>
+    </record>
+    <record id="action_expiry_batches" model="ir.actions.act_window">
+        <field name="name">Product Expiry</field>
+        <field name="res_model">stock.lot</field>
+        <field name="view_mode">list,form</field>
+        <field name="view_id" ref="view_expiry_batch_list"/>
+        <field name="search_view_id" ref="view_expiry_batch_search"/>
+        <field name="domain">[('product_id.type', '=', 'consu'), ('product_id.active', '=', True), ('product_id.tracking', '!=', 'none')]</field>
+        <field name="context">{'search_default_in_stock': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Track expiry dates on your existing Odoo batches</p>
+            <p>Receive tracked products through the normal receipt process. Remove the In Stock filter to see empty batches. Dates can be edited here; stock quantities come from Odoo.</p>
+        </field>
+    </record>
+    <record id="action_expiry_setup_review" model="ir.actions.act_window">
+        <field name="name">Products Without Expiry Tracking</field>
+        <field name="res_model">product.template</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('type', '=', 'consu'), ('is_storable', '=', True), '|', ('tracking', '=', 'none'), ('use_expiration_date', '=', False)]</field>
+        <field name="help" type="html"><p>Review which products need expiry tracking. This list may include non-perishable products that do not need it. Nothing is enabled automatically.</p></field>
+    </record>
+</odoo>

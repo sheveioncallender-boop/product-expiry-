@@ -1,0 +1,52 @@
+name: Odoo 19 validation
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  odoo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: postgres
+          POSTGRES_USER: odoo
+          POSTGRES_PASSWORD: odoo_ci
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U odoo" --health-interval 5s
+          --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Static validation
+        run: python3 tools/check_module.py
+      - name: Install module and run native Odoo tests
+        run: |
+          mkdir -p "$RUNNER_TEMP/expiry-results"
+          chmod 777 "$RUNNER_TEMP/expiry-results"
+          docker run --rm --network host \
+            -v "$GITHUB_WORKSPACE:/mnt/extra-addons:ro" \
+            -v "$RUNNER_TEMP/expiry-results:/tmp/results" \
+            -e HOST=127.0.0.1 -e USER=odoo -e PASSWORD=odoo_ci \
+            odoo:19.0 odoo -d spx_expiry_ci \
+            --db_host=127.0.0.1 --db_user=odoo --db_password=odoo_ci \
+            -i spx_product_expiry --without-demo=all --stop-after-init \
+            --test-enable --test-tags=/spx_product_expiry \
+            --logfile=/tmp/results/install.log
+      - name: Upgrade installed module
+        run: |
+          docker run --rm --network host \
+            -v "$GITHUB_WORKSPACE:/mnt/extra-addons:ro" \
+            -v "$RUNNER_TEMP/expiry-results:/tmp/results" \
+            -e HOST=127.0.0.1 -e USER=odoo -e PASSWORD=odoo_ci \
+            odoo:19.0 odoo -d spx_expiry_ci \
+            --db_host=127.0.0.1 --db_user=odoo --db_password=odoo_ci \
+            -u spx_product_expiry --without-demo=all --stop-after-init \
+            --logfile=/tmp/results/upgrade.log
+      - name: Preserve validation logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: odoo19-validation
+          path: ${{ runner.temp }}/expiry-results

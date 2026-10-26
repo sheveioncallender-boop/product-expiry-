@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="paperformat_expiry" model="report.paperformat">
+        <field name="name">Product Expiry A4 Landscape</field>
+        <field name="format">A4</field>
+        <field name="orientation">Landscape</field>
+        <field name="margin_top">40</field>
+        <field name="margin_bottom">20</field>
+        <field name="margin_left">10</field>
+        <field name="margin_right">10</field>
+        <field name="header_spacing">32</field>
+        <field name="dpi">90</field>
+    </record>
+    <record id="report_expiry_pdf" model="ir.actions.report">
+        <field name="name">Product Expiry Report</field>
+        <field name="model">spx.expiry.report.wizard</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">spx_product_expiry.expiry_report_document</field>
+        <field name="report_file">spx_product_expiry.expiry_report_document</field>
+        <field name="paperformat_id" ref="paperformat_expiry"/>
+        <field name="group_ids" eval="[(4, ref('stock.group_stock_user'))]"/>
+        <field name="print_report_name">'Product Expiry Report'</field>
+    </record>
+    <template id="expiry_report_document">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="web.external_layout">
+                    <div class="page">
+                        <h2>Product Expiry Report</h2>
+                        <div class="row mb-2">
+                            <div class="col-7">
+                                <strong>Period: </strong><span t-out="period_label"/>
+                                <span t-if="o.category_id"> | <strong>Category: </strong><span t-field="o.category_id"/></span>
+                                <div><strong>Companies: </strong><span t-out="company_names"/></div>
+                                <div t-if="o.date_from or o.date_to"><strong>Expiry range: </strong><span t-field="o.date_from"/> — <span t-field="o.date_to"/></div>
+                            </div>
+                            <div class="col-5 text-end">
+                                <div><strong>Generated: </strong><span t-out="context_timestamp(generated_at).strftime('%Y-%m-%d %H:%M')"/></div>
+                                <div><strong>Timezone: </strong><span t-out="report_timezone"/></div>
+                                <div><span t-out="len(lots)"/> batches | <span t-out="'In stock only' if o.in_stock_only else 'Including empty batches'"/></div>
+                            </div>
+                        </div>
+                        <table class="table table-sm" style="font-size: 10px; table-layout: fixed; width: 100%;">
+                            <thead style="display: table-header-group;">
+                                <tr>
+                                    <th style="width: 24%;">Product / Reference</th>
+                                    <th style="width: 14%;">Batch</th>
+                                    <th style="width: 14%;">Category</th>
+                                    <th style="width: 10%;" class="text-end">On Hand / Unit</th>
+                                    <th style="width: 17%;">Expiry (local time)</th>
+                                    <th style="width: 7%;" class="text-end">Days</th>
+                                    <th style="width: 14%;">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="lots" t-as="lot" style="page-break-inside: avoid; word-wrap: break-word;">
+                                    <td><span t-field="lot.product_id"/><div t-if="lot.spx_reference"><span t-field="lot.spx_reference"/></div><div t-if="lot.spx_barcode"><span t-field="lot.spx_barcode"/></div></td>
+                                    <td><span t-field="lot.name"/><div t-if="len(env.companies) &gt; 1"><span t-field="lot.company_id"/></div></td>
+                                    <td><span t-field="lot.spx_category_id"/></td>
+                                    <td class="text-end"><span t-field="lot.product_qty"/><br/><span t-field="lot.product_uom_id"/></td>
+                                    <td><span t-if="lot.expiration_date" t-field="lot.expiration_date"/><span t-else="">Not set</span></td>
+                                    <td class="text-end"><span t-if="lot.expiration_date" t-out="lot.spx_days_to_expiry"/></td>
+                                    <td t-att-style="'color: #b91c1c; font-weight: bold;' if lot.spx_expiry_status == 'expired' else ''"><span t-out="status_labels[lot.spx_expiry_status]"/></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <p style="font-size: 10px;">Quantities are native Odoo on-hand balances at report time. Expired quantities remain until handled through the normal stock process. Missing dates require review. Quantities are not summed across different products or units.</p>
+                        <p class="text-muted" style="font-size: 9px;">Spxcorp Limited · Product Expiry</p>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+</odoo>
