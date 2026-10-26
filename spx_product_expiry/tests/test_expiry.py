@@ -107,6 +107,10 @@ class TestProductExpiry(TransactionCase):
     def test_date_edit_does_not_change_stock_and_is_logged(self):
         lot = self._lot("AUDIT", fields.Datetime.now() + timedelta(days=20))
         self._move(lot, 5, self.supplier, self.stock)
+        # Finish the native creation-log callbacks before testing a later edit;
+        # mail.thread deliberately coalesces edits made in a creation transaction.
+        self.env.flush_all()
+        self.env.cr.precommit.run()
         count = self.env["stock.move"].search_count([])
         removal_before = lot.removal_date
         expiry_before = lot.expiration_date
