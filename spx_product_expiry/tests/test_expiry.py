@@ -27,8 +27,8 @@ class TestProductExpiry(TransactionCase):
         cls.stock = cls.env.ref("stock.stock_location_stock")
         cls.supplier = cls.env.ref("stock.stock_location_suppliers")
         cls.customer = cls.env.ref("stock.stock_location_customers")
-        cls.stock_user = new_test_user(cls.env, login="spx_expiry_stock_test", groups="stock.group_stock_user", tz="America/Port_of_Spain")
-        cls.basic_user = new_test_user(cls.env, login="spx_expiry_basic_test", groups="base.group_user")
+        cls.stock_user = new_test_user(cls.env, login="spx_expiry_stock_test", groups="stock.group_stock_user", tz="America/Port_of_Spain", context={"no_reset_password": True})
+        cls.basic_user = new_test_user(cls.env, login="spx_expiry_basic_test", groups="base.group_user", context={"no_reset_password": True})
 
     def _lot(self, name, expiry, company=None):
         return self.Lot.create({"name": name, "product_id": self.product.id,
@@ -37,7 +37,7 @@ class TestProductExpiry(TransactionCase):
 
     def _move(self, lot, quantity, source, destination):
         move = self.env["stock.move"].create({
-            "name": "Native expiry regression move", "product_id": lot.product_id.id,
+            "product_id": lot.product_id.id,
             "product_uom": lot.product_id.uom_id.id, "product_uom_qty": quantity,
             "location_id": source.id, "location_dest_id": destination.id,
             "company_id": self.env.company.id,
