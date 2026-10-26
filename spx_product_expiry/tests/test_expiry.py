@@ -43,11 +43,16 @@ class TestProductExpiry(TransactionCase):
             "company_id": self.env.company.id,
         })
         move._action_confirm()
+        # Supplier/customer locations can auto-create an untracked reservation
+        # line at confirmation. Replace that draft line with the chosen batch.
+        move.move_line_ids.unlink()
         self.env["stock.move.line"].create({
             "move_id": move.id, "product_id": lot.product_id.id,
             "product_uom_id": lot.product_id.uom_id.id, "quantity": quantity,
             "lot_id": lot.id, "location_id": source.id, "location_dest_id": destination.id,
         })
+        self.assertEqual(move.quantity, quantity)
+        self.assertEqual(move.move_line_ids.lot_id, lot)
         move.picked = True
         move._action_done()
         return move

@@ -48,4 +48,4 @@ Uninstalling this addon removes its screens, summary fields and transient report
 
 ## Validation
 
-`python3 tools/check_module.py` checks syntax, manifest resources and the absence of stock/POS workflow overrides. GitHub Actions installs the module in official Odoo 19 with disposable PostgreSQL, runs integration tests, then verifies upgrade. Tests cover native receipts/deliveries/returns, date edits, timezone boundaries, searches, reports, missing dates, duplication, access rights and company isolation. Tests never connect to the pharmacy instance.
+`python3 tools/check_module.py` checks syntax, manifest resources and the absence of stock/POS workflow overrides. GitHub Actions installs the module in official Odoo 19 with disposable PostgreSQL, runs integration tests, verifies upgrade, then checks that native lots, expiry dates and quantities survive uninstall. Tests cover native receipts/deliveries/returns, date edits, timezone boundaries, searches, reports, missing dates, duplication, access rights and company isolation. Tests never connect to the pharmacy instance.

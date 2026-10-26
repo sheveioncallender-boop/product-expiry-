@@ -15,7 +15,7 @@ jobs:
           POSTGRES_PASSWORD: odoo_ci
         ports: ["5432:5432"]
         options: >-
-          --health-cmd "pg_isready -U odoo" --health-interval 5s
+          --health-cmd "pg_isready -U odoo -d postgres" --health-interval 5s
           --health-timeout 5s --health-retries 10
     steps:
       - uses: actions/checkout@v4
@@ -44,6 +44,19 @@ jobs:
             --db_host=127.0.0.1 --db_user=odoo --db_password=odoo_ci \
             -u spx_product_expiry --without-demo=all --stop-after-init \
             --logfile=/tmp/results/upgrade.log || { tail -n 180 "$RUNNER_TEMP/expiry-results/upgrade.log"; exit 1; }
+      - name: Verify uninstall preserves native stock data
+        run: |
+          for phase in prepare verify; do
+            docker run --rm -i --network host \
+              -v "$GITHUB_WORKSPACE:/mnt/extra-addons:ro" \
+              -v "$RUNNER_TEMP/expiry-results:/tmp/results" \
+              -e HOST=127.0.0.1 -e USER=odoo -e PASSWORD=odoo_ci \
+              -e SPX_UNINSTALL_PHASE="$phase" \
+              odoo:19.0 odoo shell -d spx_expiry_ci --no-http \
+              --db_host=127.0.0.1 --db_user=odoo --db_password=odoo_ci \
+              --logfile="/tmp/results/uninstall-$phase.log" \
+              < tools/check_uninstall.py
+          done
       - name: Preserve validation logs
         if: always()
         uses: actions/upload-artifact@v4
