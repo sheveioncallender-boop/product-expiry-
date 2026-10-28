@@ -1,0 +1,115 @@
+<odoo>
+    <record id="independent_expiry_list" model="ir.ui.view">
+        <field name="name">spx.expiry.batch.list</field><field name="model">spx.expiry.batch</field>
+        <field name="arch" type="xml">
+            <list string="Expiry Stock" editable="bottom" decoration-danger="status == 'expired'" decoration-warning="status in ('today', 'soon', 'hold')" decoration-muted="quantity == 0">
+                <field name="product_id" domain="[('spx_expiry_enabled', '=', True)]" options="{'no_create': True}" readonly="id"/>
+                <field name="name"/><field name="expiry_date"/><field name="quantity"/>
+                <field name="uom_id"/><field name="days_remaining"/><field name="status" widget="badge"/>
+                <field name="saleable"/><field name="company_id" groups="base.group_multi_company" readonly="id"/>
+            </list>
+        </field>
+    </record>
+    <record id="independent_expiry_form" model="ir.ui.view">
+        <field name="name">spx.expiry.batch.form</field><field name="model">spx.expiry.batch</field>
+        <field name="arch" type="xml">
+            <form string="Expiry Stock"><sheet>
+                <div class="alert alert-info">Assign quantities already recorded in Odoo. This screen does not receive or write off inventory.</div>
+                <group><group>
+                    <field name="product_id" domain="[('spx_expiry_enabled', '=', True)]" options="{'no_create': True}" readonly="id"/>
+                    <field name="name"/><field name="expiry_date"/><field name="quantity"/><field name="uom_id"/>
+                </group><group><field name="saleable"/><field name="status"/><field name="days_remaining"/>
+                    <field name="company_id" groups="base.group_multi_company" readonly="id"/><field name="active"/>
+                </group></group>
+                <field name="movement_ids" readonly="1"><list create="0" delete="0"><field name="create_date"/><field name="reason"/><field name="delta"/><field name="balance"/><field name="user_id"/></list></field>
+            </sheet><chatter/></form>
+        </field>
+    </record>
+    <record id="independent_expiry_search" model="ir.ui.view">
+        <field name="name">spx.expiry.batch.search</field><field name="model">spx.expiry.batch</field>
+        <field name="arch" type="xml"><search>
+            <field name="product_id"/><field name="name"/>
+            <filter name="in_stock" string="In Stock" domain="[('quantity', '&gt;', 0)]"/><separator/>
+            <filter name="expired" string="Expired" domain="[('status', '=', 'expired')]"/>
+            <filter name="today" string="Expires Today" domain="[('status', '=', 'today')]"/>
+            <filter name="next30" string="Next 30 Days" domain="[('expiry_date', '&gt;=', 'today'), ('expiry_date', '&lt;', 'today +31d')]"/>
+            <filter name="next60" string="Next 60 Days" domain="[('expiry_date', '&gt;=', 'today'), ('expiry_date', '&lt;', 'today +61d')]"/>
+            <filter name="next90" string="Next 90 Days" domain="[('expiry_date', '&gt;=', 'today'), ('expiry_date', '&lt;', 'today +91d')]"/>
+            <separator/><filter name="hold" string="On Hold" domain="[('saleable', '=', False)]"/>
+            <filter name="archived" string="Archived" domain="[('active', '=', False)]"/>
+            <group><filter name="product" string="Product" context="{'group_by': 'product_id'}"/>
+                <filter name="expiry" string="Expiry Month" context="{'group_by': 'expiry_date:month'}"/>
+            </group>
+        </search></field>
+    </record>
+    <record id="action_independent_expiry" model="ir.actions.act_window">
+        <field name="name">Expiry Stock</field><field name="res_model">spx.expiry.batch</field>
+        <field name="view_mode">list,form</field><field name="search_view_id" ref="independent_expiry_search"/>
+        <field name="context">{'search_default_in_stock': 1}</field>
+        <field name="help" type="html"><p class="o_view_nocontent_smiling_face">Add an expiry date and quantity for your existing stock</p><p>Enable Independent Expiry on the product first. Quantities here allocate existing Odoo stock; they do not add stock.</p></field>
+    </record>
+    <record id="independent_product_form" model="ir.ui.view">
+        <field name="name">product.template.independent.expiry</field><field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_only_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='general_information']" position="inside">
+                <group string="Independent Expiry" groups="stock.group_stock_user" invisible="type != 'consu'">
+                    <field name="spx_expiry_enabled"/><field name="spx_current_company_id" invisible="1"/><field name="product_variant_id" invisible="1"/>
+                    <group invisible="not spx_expiry_enabled">
+                        <field name="spx_expiry_physical"/><field name="spx_expiry_assigned"/>
+                        <field name="spx_expiry_unassigned" decoration-danger="spx_expiry_unassigned &lt; 0"/>
+                        <field name="spx_independent_next_expiry"/>
+                    </group>
+                    <button name="action_spx_independent_batches" type="object" string="Manage Expiry Stock" class="btn-secondary" invisible="not spx_expiry_enabled"/>
+                </group>
+                <div groups="stock.group_stock_user" invisible="not spx_expiry_enabled">
+                    <p class="text-muted">Add the expiry date and remaining quantity for each batch. These quantities are part of your existing Odoo stock. Use separate rows for different expiries. Totals cover all variants and internal locations in the current company.</p>
+                    <field name="spx_independent_batch_ids" nolabel="1" domain="[('company_id', '=', spx_current_company_id)]" context="{'default_product_id': product_variant_id, 'default_company_id': spx_current_company_id}" >
+                        <list editable="bottom" delete="0" decoration-danger="status == 'expired'" decoration-warning="status in ('today', 'soon', 'hold')">
+                            <field name="product_id" domain="[('product_tmpl_id', '=', parent.id)]" options="{'no_create': True}" readonly="id"/>
+                            <field name="name"/><field name="expiry_date"/><field name="quantity"/><field name="uom_id"/>
+                            <field name="status" widget="badge"/><field name="saleable"/>
+                            <field name="company_id" groups="base.group_multi_company" readonly="id"/>
+                        </list>
+                    </field>
+                </div>
+            </xpath>
+        </field>
+    </record>
+    <record id="independent_move_line_details" model="ir.ui.view">
+        <field name="name">stock.move.line.independent.expiry</field><field name="model">stock.move.line</field>
+        <field name="inherit_id" ref="stock.view_move_line_tree_detailed"/>
+        <field name="arch" type="xml"><xpath expr="//field[@name='quantity']" position="after">
+            <field name="spx_expiry_enabled" column_invisible="True"/>
+            <field name="spx_expiry_batch_id" optional="show" invisible="not spx_expiry_enabled" readonly="state == 'done'" domain="[('product_id', '=', product_id), ('company_id', '=', company_id)]" context="{'default_product_id': product_id, 'default_company_id': company_id}"/>
+        </xpath></field>
+    </record>
+    <record id="independent_move_line_form" model="ir.ui.view">
+        <field name="name">stock.move.line.form.independent.expiry</field><field name="model">stock.move.line</field>
+        <field name="inherit_id" ref="stock.view_move_line_form"/>
+        <field name="arch" type="xml"><xpath expr="//field[@name='quantity']" position="after">
+            <field name="spx_expiry_enabled" invisible="1"/>
+            <field name="spx_expiry_batch_id" invisible="not spx_expiry_enabled" readonly="state == 'done'" domain="[('product_id', '=', product_id), ('company_id', '=', company_id)]" context="{'default_product_id': product_id, 'default_company_id': company_id}"/>
+        </xpath></field>
+    </record>
+    <record id="action_independent_setup" model="ir.actions.act_window">
+        <field name="name">Products to Set Up for Expiry</field><field name="res_model">product.template</field>
+        <field name="view_mode">list,form</field><field name="domain">[('is_storable', '=', True), ('tracking', '=', 'none'), ('spx_expiry_enabled', '=', False)]</field>
+    </record>
+    <record id="action_independent_products" model="ir.actions.act_window">
+        <field name="name">Expiry Products / Reconciliation</field><field name="res_model">product.template</field>
+        <field name="view_mode">list,form</field><field name="domain">[('spx_expiry_enabled', '=', True)]</field>
+    </record>
+    <record id="expiry_product_list" model="ir.ui.view">
+        <field name="name">product.template.expiry.reconciliation</field><field name="model">product.template</field>
+        <field name="arch" type="xml"><list create="0" decoration-danger="spx_expiry_unassigned &lt; 0" decoration-warning="spx_expiry_unassigned &gt; 0">
+            <field name="name"/><field name="default_code"/><field name="spx_expiry_physical"/><field name="spx_expiry_assigned"/><field name="spx_expiry_unassigned"/><field name="spx_independent_next_expiry"/>
+        </list></field>
+    </record>
+    <record id="action_independent_products" model="ir.actions.act_window"><field name="view_id" ref="expiry_product_list"/></record>
+    <record id="menu_expiry_batches" model="ir.ui.menu"><field name="action" ref="action_independent_expiry"/></record>
+    <record id="menu_expiry_setup_review" model="ir.ui.menu"><field name="name">Products to Set Up for Expiry</field><field name="action" ref="action_independent_setup"/></record>
+    <menuitem id="menu_expiry_reconcile" name="Expiry Products / Reconciliation" parent="menu_expiry_root" action="action_independent_products" sequence="25"/>
+    <menuitem id="menu_expiry_native" name="Native Lot Expiry (Legacy)" parent="menu_expiry_root" action="action_expiry_batches" sequence="90"/>
+<record id="expiry_move_operation" model="ir.ui.view"><field name="name">stock.move.line.expiry.operation</field><field name="model">stock.move.line</field><field name="inherit_id" ref="stock.view_stock_move_line_operation_tree"/><field name="arch" type="xml"><xpath expr="//field[@name='quantity']" position="after"><field name="spx_expiry_enabled" column_invisible="True"/><field name="spx_expiry_batch_id" optional="show" invisible="not spx_expiry_enabled" readonly="state == 'done'" domain="[('product_id', '=', product_id), ('company_id', '=', company_id)]" context="{'default_product_id': product_id, 'default_company_id': company_id}"/></xpath></field></record><record id="expiry_move_detailed_operation" model="ir.ui.view"><field name="name">stock.move.line.expiry.detailed_operation</field><field name="model">stock.move.line</field><field name="inherit_id" ref="stock.view_stock_move_line_detailed_operation_tree"/><field name="arch" type="xml"><xpath expr="//field[@name='quantity']" position="after"><field name="spx_expiry_enabled" column_invisible="True"/><field name="spx_expiry_batch_id" optional="show" invisible="not spx_expiry_enabled" readonly="state == 'done'" domain="[('product_id', '=', product_id), ('company_id', '=', company_id)]" context="{'default_product_id': product_id, 'default_company_id': company_id}"/></xpath></field></record>
+</odoo>

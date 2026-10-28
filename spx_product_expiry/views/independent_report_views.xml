@@ -1,0 +1,33 @@
+<odoo>
+    <record id="independent_report_form" model="ir.ui.view">
+        <field name="name">spx.expiry.stock.report.form</field><field name="model">spx.expiry.stock.report</field>
+        <field name="arch" type="xml"><form string="Expiry Stock Report"><group>
+            <field name="period"/><field name="product_id"/><field name="category_id"/>
+            <field name="date_from"/><field name="date_to"/><field name="in_stock_only"/>
+            <field name="file_name" invisible="1"/><field name="file_data" filename="file_name" invisible="not file_data"/>
+        </group><p>Generate again after changing filters. Quantities represent expiry allocations, including stock on hold.</p><footer>
+            <button name="action_preview" type="object" string="Preview" class="btn-primary"/>
+            <button name="action_pdf" type="object" string="Print PDF"/>
+            <button name="action_csv" type="object" string="Download CSV"/><button special="cancel" string="Close"/>
+        </footer></form></field>
+    </record>
+    <record id="action_independent_report" model="ir.actions.act_window">
+        <field name="name">Expiry Stock Report</field><field name="res_model">spx.expiry.stock.report</field><field name="view_mode">form</field><field name="target">new</field>
+    </record>
+    <record id="menu_expiry_report" model="ir.ui.menu"><field name="action" ref="action_independent_report"/></record>
+    <record id="report_independent_pdf" model="ir.actions.report">
+        <field name="name">Expiry Stock Report</field><field name="model">spx.expiry.stock.report</field><field name="report_type">qweb-pdf</field>
+        <field name="report_name">spx_product_expiry.independent_report_document</field><field name="paperformat_id" ref="paperformat_expiry"/>
+        <field name="group_ids" eval="[(4, ref('stock.group_stock_user'))]"/>
+    </record>
+    <template id="independent_report_document">
+        <t t-call="web.html_container"><t t-foreach="docs" t-as="o"><t t-call="web.external_layout"><div class="page">
+            <h2>Expiry Stock Report</h2><p>Independent expiry quantities · <span t-out="o.period"/></p>
+            <table class="table table-sm"><thead><tr><th>Product</th><th>Batch</th><th>Expiry</th><th>Remaining</th><th>Unit</th><th>Status</th></tr></thead>
+                <tbody><tr t-foreach="o._batches()" t-as="batch"><td t-field="batch.product_id"/><td t-field="batch.name"/><td t-field="batch.expiry_date"/>
+                    <td t-field="batch.quantity"/><td t-field="batch.uom_id"/><td t-field="batch.status"/>
+                </tr></tbody>
+            </table>
+        </div></t></t></t>
+    </template>
+</odoo>

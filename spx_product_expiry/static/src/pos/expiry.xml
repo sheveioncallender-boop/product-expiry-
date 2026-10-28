@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="spx_product_expiry.Orderline" t-inherit="point_of_sale.Orderline" t-inherit-mode="extension">
+        <xpath expr="//ul[hasclass('info-list')]" position="inside">
+            <li t-if="line.spx_expiry_label" class="spx-expiry-label text-primary">
+                Expiry: <t t-esc="line.spx_expiry_label"/>
+                <span t-if="line.qty &lt; 0 and !line.spx_return_saleable"> — Return on hold</span>
+            </li>
+        </xpath>
+    </t>
+</templates>

@@ -6,7 +6,7 @@
         <field name="inherit_id" ref="product.product_template_only_form_view"/>
         <field name="arch" type="xml">
             <xpath expr="//page[@name='general_information']" position="inside">
-                <group string="Product Expiry" name="spx_product_expiry" groups="stock.group_stock_user" invisible="type != 'consu'">
+                <group string="Product Expiry" name="spx_product_expiry" groups="stock.group_stock_user" invisible="type != 'consu' or tracking == 'none'">
                     <group>
                         <field name="spx_next_expiration_date" readonly="1"/>
                         <field name="spx_stocked_lot_count" readonly="1"/>
@@ -20,7 +20,7 @@
                         </div>
                     </group>
                 </group>
-                <div groups="stock.group_stock_user" invisible="type != 'consu'" class="mb-3">
+                <div groups="stock.group_stock_user" invisible="type != 'consu' or tracking == 'none'" class="mb-3">
                     <div class="alert alert-info" role="alert" invisible="tracking != 'none' and use_expiration_date">
                         Expiry tracking uses Odoo's native lots. Review the product's inventory tracking and expiration settings before receiving batches. Existing stock is not converted automatically.
                     </div>

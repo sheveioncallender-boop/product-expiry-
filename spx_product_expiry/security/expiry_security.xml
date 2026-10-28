@@ -1,0 +1,12 @@
+<odoo>
+    <record id="expiry_batch_company_rule" model="ir.rule">
+        <field name="name">Expiry stock: allowed companies</field>
+        <field name="model_id" ref="model_spx_expiry_batch"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="expiry_movement_company_rule" model="ir.rule">
+        <field name="name">Expiry history: allowed companies</field>
+        <field name="model_id" ref="model_spx_expiry_movement"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+</odoo>
