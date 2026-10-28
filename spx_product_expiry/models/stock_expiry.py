@@ -12,6 +12,8 @@ class StockMoveLine(models.Model):
 class StockMove(models.Model):
     _inherit = "stock.move"
 
+    spx_pos_line_ids = fields.Many2many("pos.order.line", string="Expiry POS Source Lines", readonly=True, copy=False)
+
     def _action_done(self, cancel_backorder=False):
         candidates = self.filtered(lambda m: m.state not in ("done", "cancel"))
         Batch = self.env["spx.expiry.batch"]
@@ -19,7 +21,7 @@ class StockMove(models.Model):
         result = super()._action_done(cancel_backorder=cancel_backorder)
         Movement = self.env["spx.expiry.movement"].sudo()
         for line in result.filtered(lambda m: m.state == "done").move_line_ids:
-            if not line.product_id.spx_expiry_enabled or line.picking_id.pos_session_id or not line.quantity:
+            if not line.product_id.spx_expiry_enabled or line.move_id.spx_pos_line_ids or line.picking_id.pos_session_id or not line.quantity:
                 continue
             if Movement.search_count([("move_line_id", "=", line.id)]):
                 continue
@@ -38,3 +40,14 @@ class StockMove(models.Model):
             quantity = line.product_uom_id._compute_quantity(line.quantity, line.product_id.uom_id)
             batch._change_quantity(quantity if incoming else -quantity, line.reference or "Stock movement", move_line=line)
         return result
+
+
+class StockPicking(models.Model):
+    _inherit = "stock.picking"
+
+    def _prepare_stock_move_vals(self, first_line, order_lines):
+        vals = super()._prepare_stock_move_vals(first_line, order_lines)
+        # Older Odoo 19 builds attach pos_session_id only AFTER validating the
+        # picking. Explicit lineage prevents a second expiry deduction there too.
+        vals["spx_pos_line_ids"] = [(6, 0, order_lines.ids)]
+        return vals

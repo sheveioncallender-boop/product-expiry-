@@ -17,7 +17,7 @@ for path in ROOT.rglob("*.py"):
                 for value in node.body:
                     if isinstance(value, ast.Assign):
                         if any(isinstance(t, ast.Name) and t.id == "_inherit" for t in value.targets):
-                            assert ast.literal_eval(value.value) in ("stock.lot", "product.template", "pos.session", "pos.order", "pos.order.line", "pos.config", "stock.move", "stock.move.line", ["mail.thread", "pos.load.mixin"])
+                            assert ast.literal_eval(value.value) in ("stock.lot", "product.template", "pos.session", "pos.order", "pos.order.line", "pos.config", "stock.move", "stock.move.line", "stock.picking", ["mail.thread", "pos.load.mixin"])
             if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
                 pass  # Private stock/POS balance updates use scoped elevation; behavioral access tests cover this.
 for path in MODULE.rglob("*.xml"):

@@ -24,8 +24,8 @@
         <t t-call="web.html_container"><t t-foreach="docs" t-as="o"><t t-call="web.external_layout"><div class="page">
             <h2>Expiry Stock Report</h2><p>Independent expiry quantities · <span t-out="o.period"/></p>
             <table class="table table-sm"><thead><tr><th>Product</th><th>Batch</th><th>Expiry</th><th>Remaining</th><th>Unit</th><th>Status</th></tr></thead>
-                <tbody><tr t-foreach="o._batches()" t-as="batch"><td t-field="batch.product_id"/><td t-field="batch.name"/><td t-field="batch.expiry_date"/>
-                    <td t-field="batch.quantity"/><td t-field="batch.uom_id"/><td t-field="batch.status"/>
+                <tbody><tr t-foreach="o._batches()" t-as="batch"><td><span t-field="batch.product_id"/></td><td><span t-field="batch.name"/></td><td><span t-field="batch.expiry_date"/></td>
+                    <td><span t-field="batch.quantity"/></td><td><span t-field="batch.uom_id"/></td><td><span t-field="batch.status"/></td>
                 </tr></tbody>
             </table>
         </div></t></t></t>

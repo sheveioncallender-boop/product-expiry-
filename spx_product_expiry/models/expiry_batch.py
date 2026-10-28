@@ -60,6 +60,10 @@ class ExpiryBatch(models.Model):
         products.flush_recordset()
         if products:
             self.env.cr.execute("SELECT id FROM product_product WHERE id IN %s ORDER BY id FOR UPDATE", [tuple(products.ids)])
+            # Odoo uses REPEATABLE READ: a lock alone cannot refresh a transaction's
+            # old snapshot. Touch the row version so a waiting competing transaction
+            # gets a serialization failure and Odoo retries it with fresh balances.
+            self.env.cr.execute("UPDATE product_product SET write_date = write_date WHERE id IN %s", [tuple(products.ids)])
             self.invalidate_model(["quantity"])
             self.env["stock.quant"].invalidate_model()
 

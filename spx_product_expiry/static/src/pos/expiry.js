@@ -40,6 +40,7 @@ patch(PosStore.prototype, {
                 line.update({ spx_expiry_batch_id: original.spx_expiry_batch_id,
                     spx_expiry_label: original.spx_expiry_label,
                     spx_return_saleable: disposition === "sale" });
+                line.uiState.spxReturnReviewed = true;
                 return line;
             }
             const response = await this.data.call("spx.expiry.batch", "pos_choices", [line.product_id.id, this.config.id]);
@@ -80,6 +81,15 @@ patch(PosStore.prototype, {
 });
 
 patch(PosOrderline.prototype, {
+    setup(vals) {
+        super.setup(vals);
+        // The native receipt-refund screen creates lines directly, bypassing
+        // PosStore.addLineToOrder. Carry the original batch through that route too.
+        if (this.qty < 0 && this.refunded_orderline_id?.spx_expiry_batch_id && !this.spx_expiry_batch_id) {
+            this.update({ spx_expiry_batch_id: this.refunded_orderline_id.spx_expiry_batch_id,
+                spx_expiry_label: this.refunded_orderline_id.spx_expiry_label });
+        }
+    },
     canBeMergedWith(other) {
         return (this.spx_expiry_batch_id?.id || false) === (other.spx_expiry_batch_id?.id || false)
             && super.canBeMergedWith(other);
@@ -91,6 +101,23 @@ patch(OrderPaymentValidation.prototype, {
         const lines = this.order.getOrderlines().filter((line) => line.product_id.product_tmpl_id.spx_expiry_enabled);
         if (lines.length) {
             try {
+                for (const line of lines.filter((item) => item.qty < 0 && !item.uiState.spxReturnReviewed)) {
+                    const original = line.refunded_orderline_id;
+                    if (!original?.spx_expiry_batch_id) {
+                        throw new Error(_t("Use the original receipt to refund expiry products."));
+                    }
+                    const disposition = await makeAwaitable(this.pos.dialog, SelectionPopup, {
+                        title: _t("Returned goods: where should the expiry quantity go?"),
+                        list: [
+                            { id: "hold", label: _t("Hold for review — not available for sale"), item: "hold" },
+                            { id: "sale", label: _t("Return to original expiry — confirmed saleable"), item: "sale" },
+                        ],
+                    });
+                    if (!disposition) { return false; }
+                    line.update({ spx_expiry_batch_id: original.spx_expiry_batch_id,
+                        spx_expiry_label: original.spx_expiry_label, spx_return_saleable: disposition === "sale" });
+                    line.uiState.spxReturnReviewed = true;
+                }
                 if (this.order.getShippingDate()) {
                     throw new Error(_t("Expiry products must be handed over at the till; remove Ship Later."));
                 }

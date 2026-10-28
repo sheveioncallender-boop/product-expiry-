@@ -33,7 +33,7 @@ jobs:
             --db_host=127.0.0.1 --db_user=odoo --db_password=odoo_ci \
             -i spx_product_expiry --without-demo=all --stop-after-init \
             --test-enable --test-tags=/spx_product_expiry \
-            --logfile=/tmp/results/install.log || { tail -n 180 "$RUNNER_TEMP/expiry-results/install.log"; exit 1; }
+            --logfile=/tmp/results/install.log || { cat "$RUNNER_TEMP/expiry-results/install.log"; exit 1; }
       - name: Upgrade installed module
         run: |
           docker run --rm --network host \
@@ -43,7 +43,7 @@ jobs:
             odoo:19.0 odoo -d spx_expiry_ci \
             --db_host=127.0.0.1 --db_user=odoo --db_password=odoo_ci \
             -u spx_product_expiry --without-demo=all --stop-after-init \
-            --logfile=/tmp/results/upgrade.log || { tail -n 180 "$RUNNER_TEMP/expiry-results/upgrade.log"; exit 1; }
+            --logfile=/tmp/results/upgrade.log || { cat "$RUNNER_TEMP/expiry-results/upgrade.log"; exit 1; }
       - name: Verify uninstall preserves native stock data
         run: |
           for phase in prepare verify; do

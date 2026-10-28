@@ -96,7 +96,10 @@ class PosOrder(models.Model):
     def _process_saved_order(self, draft):
         if not draft and self.state != "cancel":
             self._spx_apply_expiry()
-        return super()._process_saved_order(draft)
+        result = super()._process_saved_order(draft)
+        if not draft and self.state != "cancel" and any(self.lines.product_id.mapped("spx_expiry_enabled")) and not self._spx_stock_completed():
+            raise UserError(self.env._("Odoo could not complete the stock transfer for this expiry sale or refund. Resolve the stock transfer issue before validating; no expiry quantities have been committed."))
+        return result
 
 
 class PosConfig(models.Model):
