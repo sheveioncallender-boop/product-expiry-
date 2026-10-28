@@ -19,8 +19,13 @@ jobs:
           --health-timeout 5s --health-retries 10
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Static validation
-        run: python3 tools/check_module.py
+        run: |
+          python3 tools/check_module.py
+          curl --fail --location https://raw.githubusercontent.com/odoo/odoo/19.0/addons/web/static/src/core/utils/patch.js -o "$RUNNER_TEMP/odoo-patch.js"
+          node tools/test_pos_expiry.mjs "$RUNNER_TEMP/odoo-patch.js"
       - name: Install module and run native Odoo tests
         run: |
           mkdir -p "$RUNNER_TEMP/expiry-results"
@@ -34,6 +39,13 @@ jobs:
             -i spx_product_expiry --without-demo=all --stop-after-init \
             --test-enable --test-tags=/spx_product_expiry \
             --logfile=/tmp/results/install.log || { cat "$RUNNER_TEMP/expiry-results/install.log"; exit 1; }
+      - name: Check simultaneous expiry allocations
+        run: |
+          docker run --rm -i --network host \
+            -v "$GITHUB_WORKSPACE:/mnt/extra-addons:ro" \
+            -e HOST=127.0.0.1 -e USER=odoo -e PASSWORD=odoo_ci \
+            odoo:19.0 odoo shell -d spx_expiry_ci --no-http \
+            --db_host=127.0.0.1 --db_user=odoo --db_password=odoo_ci < tools/check_concurrency.py
       - name: Upgrade installed module
         run: |
           docker run --rm --network host \
@@ -44,6 +56,36 @@ jobs:
             --db_host=127.0.0.1 --db_user=odoo --db_password=odoo_ci \
             -u spx_product_expiry --without-demo=all --stop-after-init \
             --logfile=/tmp/results/upgrade.log || { cat "$RUNNER_TEMP/expiry-results/upgrade.log"; exit 1; }
+      - name: Upgrade the original v1 release with existing stock
+        run: |
+          mkdir -p "$RUNNER_TEMP/expiry-v1"
+          git archive b914146776e09f8bf6e292fd968d6a86151415d1 | tar -x -C "$RUNNER_TEMP/expiry-v1"
+          docker run --rm --network host \
+            -v "$RUNNER_TEMP/expiry-v1:/mnt/extra-addons:ro" \
+            -v "$RUNNER_TEMP/expiry-results:/tmp/results" \
+            -e HOST=127.0.0.1 -e USER=odoo -e PASSWORD=odoo_ci \
+            odoo:19.0 odoo -d spx_expiry_upgrade \
+            --db_host=127.0.0.1 --db_user=odoo --db_password=odoo_ci \
+            -i spx_product_expiry --without-demo=all --stop-after-init \
+            --logfile=/tmp/results/v1-install.log
+          docker run --rm -i --network host \
+            -v "$RUNNER_TEMP/expiry-v1:/mnt/extra-addons:ro" \
+            -e HOST=127.0.0.1 -e USER=odoo -e PASSWORD=odoo_ci -e SPX_UPGRADE_PHASE=prepare \
+            odoo:19.0 odoo shell -d spx_expiry_upgrade --no-http \
+            --db_host=127.0.0.1 --db_user=odoo --db_password=odoo_ci < tools/check_v1_upgrade.py
+          docker run --rm --network host \
+            -v "$GITHUB_WORKSPACE:/mnt/extra-addons:ro" \
+            -v "$RUNNER_TEMP/expiry-results:/tmp/results" \
+            -e HOST=127.0.0.1 -e USER=odoo -e PASSWORD=odoo_ci \
+            odoo:19.0 odoo -d spx_expiry_upgrade \
+            --db_host=127.0.0.1 --db_user=odoo --db_password=odoo_ci \
+            -u spx_product_expiry --without-demo=all --stop-after-init \
+            --logfile=/tmp/results/v1-upgrade.log || { cat "$RUNNER_TEMP/expiry-results/v1-upgrade.log"; exit 1; }
+          docker run --rm -i --network host \
+            -v "$GITHUB_WORKSPACE:/mnt/extra-addons:ro" \
+            -e HOST=127.0.0.1 -e USER=odoo -e PASSWORD=odoo_ci -e SPX_UPGRADE_PHASE=verify \
+            odoo:19.0 odoo shell -d spx_expiry_upgrade --no-http \
+            --db_host=127.0.0.1 --db_user=odoo --db_password=odoo_ci < tools/check_v1_upgrade.py
       - name: Verify uninstall preserves native stock data
         run: |
           for phase in prepare verify; do

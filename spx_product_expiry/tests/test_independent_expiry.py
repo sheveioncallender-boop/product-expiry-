@@ -109,7 +109,7 @@ class TestIndependentExpiry(TestPoSCommon):
     def test_company_isolation_and_preflight(self):
         company = self.env["res.company"].create({"name": "Expiry other company"})
         batch = self.Batch.with_company(company).create({"product_id": self.product.id, "company_id": company.id, "expiry_date": self.a.expiry_date})
-        with self.assertRaises((UserError, AccessError)), self.cr.savepoint():
+        with self.assertRaises(UserError), self.cr.savepoint():
             self.config.spx_check_expiry([{"product_id": self.product.id, "qty": 1, "batch_id": batch.id}])
         self.assertTrue(self.config.spx_check_expiry([{"product_id": self.product.id, "qty": 3, "batch_id": self.a.id}]))
         with self.assertRaises(UserError), self.cr.savepoint():
