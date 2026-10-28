@@ -27,6 +27,7 @@ Quantities are **company-wide across internal locations**, excluding consignment
 - The selected expiry is shown on the cart/receipt line. Canceling the selection removes the newly-added line.
 - Expired entries (before today), held entries and empty entries cannot be sold. An expiry date remains valid through that calendar day; no medical suitability is inferred from the date.
 - An online check is required to choose an expiry and validate payment. Final server validation rechecks product, company, date and quantity atomically. Competing tills are serialized and duplicate syncs do not deduct twice.
+- If the connection drops during final sync, POS keeps the same pending paid order and shows **Sale awaiting server confirmation**, without displaying a completed receipt. Reconnect and check the order's sync status before handing over goods or taking payment again.
 - Odoo performs the native stock deduction. The extension separately deducts the chosen expiry balance, in the same transaction. Expiry orders use native real-time pickings even if the company's ordinary POS stock timing is session-close. A failed native picking prevents completion.
 - **Ship Later is not supported** for independently tracked expiry products. Use an Inventory delivery with explicit expiry lines instead.
 - Date checks use the company's partner timezone when configured, with **America/Port_of_Spain** as the pharmacy default. Set pharmacy users to that timezone too.

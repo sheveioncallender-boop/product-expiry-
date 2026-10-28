@@ -186,6 +186,10 @@ class ExpiryBatch(models.Model):
         return [("company_id", "=", config.company_id.id)]
 
     @api.model
+    def _load_pos_data_search_read(self, data, config):
+        return super(ExpiryBatch, self.with_context(active_test=False))._load_pos_data_search_read(data, config)
+
+    @api.model
     def _load_pos_data_fields(self, config):
         return ["id", "name", "product_id", "company_id", "expiry_date", "quantity", "saleable", "active", "write_date"]
 

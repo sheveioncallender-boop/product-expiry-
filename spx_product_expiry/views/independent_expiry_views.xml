@@ -101,7 +101,7 @@
         <field name="view_mode">list,form</field><field name="domain">[('spx_expiry_enabled', '=', True)]</field>
     </record>
     <record id="expiry_product_list" model="ir.ui.view">
-        <field name="name">product.template.expiry.reconciliation</field><field name="model">product.template</field>
+        <field name="name">product.template.expiry.reconciliation</field><field name="model">product.template</field><field name="priority">99</field>
         <field name="arch" type="xml"><list create="0" decoration-danger="spx_expiry_unassigned &lt; 0" decoration-warning="spx_expiry_unassigned &gt; 0">
             <field name="name"/><field name="default_code"/><field name="spx_expiry_physical"/><field name="spx_expiry_assigned"/><field name="spx_expiry_unassigned"/><field name="spx_independent_next_expiry"/>
         </list></field>

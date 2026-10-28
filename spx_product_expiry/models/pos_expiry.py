@@ -80,6 +80,8 @@ class PosOrder(models.Model):
                     raise UserError(self.env._("The refund exceeds the original expiry batch quantity sold."))
                 batch = original.spx_expiry_batch_id
                 line.spx_expiry_batch_id = batch
+                if line.spx_return_saleable and not batch.active:
+                    batch.sudo().write({"active": True})
                 if not line.spx_return_saleable:
                     held = Batch.sudo().search([("product_id", "=", line.product_id.id), ("company_id", "=", self.company_id.id),
                                                 ("expiry_date", "=", batch.expiry_date), ("saleable", "=", False),

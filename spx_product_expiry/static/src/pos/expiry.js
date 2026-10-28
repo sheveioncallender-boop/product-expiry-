@@ -1,6 +1,7 @@
 import { patch } from "@web/core/utils/patch";
 import { _t } from "@web/core/l10n/translation";
 import { AlertDialog } from "@web/core/confirmation_dialog/confirmation_dialog";
+import { ConnectionLostError, RPCError } from "@web/core/network/rpc";
 import { PosStore } from "@point_of_sale/app/services/pos_store";
 import { PosOrderline } from "@point_of_sale/app/models/pos_order_line";
 import { SelectionPopup } from "@point_of_sale/app/components/popups/selection_popup/selection_popup";
@@ -97,6 +98,40 @@ patch(PosOrderline.prototype, {
 });
 
 patch(OrderPaymentValidation.prototype, {
+    spxHasExpiryLines() {
+        return this.order.getOrderlines().some((line) => line.product_id.product_tmpl_id.spx_expiry_enabled);
+    },
+    async shouldHideValidationBehindFeedbackScreen() {
+        if (!this.spxHasExpiryLines()) {
+            return await super.shouldHideValidationBehindFeedbackScreen();
+        }
+        // Await the server even when native POS uses its quick feedback screen.
+        // A pending offline order must not look like an accepted expiry sale.
+        this.pos.env.services.ui.block();
+        try {
+            const result = await this.finalizeValidation();
+            if (result === false || result instanceof ConnectionLostError || result instanceof RPCError) {
+                return false;
+            }
+            const next = this.nextPage;
+            this.pos.navigate(next.page, next.params);
+        } finally {
+            this.pos.env.services.ui.unblock();
+        }
+    },
+    handleValidationError(error) {
+        if (this.spxHasExpiryLines() && error instanceof ConnectionLostError) {
+            // Keep the same paid order/UUID for native retry: the server may
+            // already have committed before its response was lost.
+            this.pos.data.synchronizeLocalDataInIndexedDB();
+            this.pos.dialog.add(AlertDialog, {
+                title: _t("Sale awaiting server confirmation"),
+                body: _t("The connection dropped. Keep this order and reconnect to sync it. Check its status before handing over goods or taking payment again."),
+            });
+            return error;
+        }
+        return super.handleValidationError(error);
+    },
     async isOrderValid(isForceValidate) {
         const lines = this.order.getOrderlines().filter((line) => line.product_id.product_tmpl_id.spx_expiry_enabled);
         if (lines.length) {

@@ -8,6 +8,8 @@ if (!patchPath) throw new Error('Pass the official Odoo 19 web/core/utils/patch.
 const patchSource = fs.readFileSync(patchPath, 'utf8').replace('export function patch', 'function patch');
 const choices = [];
 const dialogs = [];
+class ConnectionLostError extends Error {}
+class RPCError extends Error {}
 class PosOrderline {
     constructor(vals) { this.uiState = {}; this.setup(vals); }
     setup(vals) { Object.assign(this, vals); }
@@ -26,8 +28,11 @@ class PosStore {
 }
 class OrderPaymentValidation {
     async isOrderValid() { this.nativeCalled = true; return true; }
+    async shouldHideValidationBehindFeedbackScreen() { this.nativeFeedback = true; }
+    handleValidationError(error) { this.nativeError = error; return error; }
 }
 const context = vm.createContext({ PosStore, PosOrderline, OrderPaymentValidation,
+    ConnectionLostError, RPCError,
     _t: (s) => s, AlertDialog: class {}, SelectionPopup: class {},
     makeAwaitable: async (dialog, component, props) => { choices.push(props); return context.selection === 'cancel' ? undefined : props.list[context.selection || 0].item; },
 });
@@ -99,4 +104,33 @@ payment = new OrderPaymentValidation(); Object.assign(payment, { pos: f.store, o
 assert.equal(await payment.isOrderValid(), false);
 assert.equal(payment.nativeCalled, undefined);
 assert.equal(dialogs[0].body, 'Not enough stock');
-console.log('PASS: POS scan choice, single expiry, cancellation, separate lines, cart quantities, offline failure, native refund route and payment validation');
+// A connection lost after preflight keeps the same pending paid order and
+// cannot print a completed receipt or navigate to native fast feedback.
+let blocked = 0, persisted = 0, navigated = 0;
+f.store.env = { services: { ui: { block: () => blocked++, unblock: () => blocked-- } } };
+f.store.data.synchronizeLocalDataInIndexedDB = () => persisted++;
+f.store.navigate = () => navigated++;
+payment.nextPage = { page: 'FeedbackScreen', params: {} };
+f.order.state = 'paid';
+const connectionError = new ConnectionLostError('Disconnected during sync');
+payment.finalizeValidation = async () => payment.handleValidationError(connectionError);
+assert.equal(await payment.shouldHideValidationBehindFeedbackScreen(), false);
+assert.equal(persisted, 1);
+assert.equal(navigated, 0);
+assert.equal(blocked, 0);
+assert.equal(f.order.state, 'paid');
+assert.equal(payment.nativeError, undefined);
+assert.match(dialogs.at(-1).title, /awaiting server confirmation/);
+payment.finalizeValidation = async () => new RPCError('Stock changed');
+assert.equal(await payment.shouldHideValidationBehindFeedbackScreen(), false);
+assert.equal(navigated, 0);
+payment.finalizeValidation = async () => undefined;
+await payment.shouldHideValidationBehindFeedbackScreen();
+assert.equal(navigated, 1);
+assert.equal(blocked, 0);
+f.order.lines = [];
+await payment.shouldHideValidationBehindFeedbackScreen();
+assert.equal(payment.nativeFeedback, true);
+assert.equal(payment.handleValidationError(connectionError), connectionError);
+assert.equal(payment.nativeError, connectionError);
+console.log('PASS: POS scan choice, single expiry, cancellation, separate lines, cart quantities, offline failure, native refund route, payment validation and interrupted final sync');

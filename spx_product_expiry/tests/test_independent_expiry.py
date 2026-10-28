@@ -99,6 +99,16 @@ class TestIndependentExpiry(TestPoSCommon):
         with self.assertRaises(UserError), self.cr.savepoint():
             self._order(-1)
 
+    def test_refund_to_archived_empty_batch(self):
+        order, _ = self._order(10, self.a)
+        self.a.active = False
+        loaded = self.Batch._load_pos_data_search_read({}, self.config)
+        self.assertIn(self.a.id, [b["id"] for b in loaded])
+        self._order(-1, original=order.lines, saleable=True)
+        self.assertTrue(self.a.active)
+        self.assertEqual(self.a.quantity, 1)
+        self.assertEqual(self.product.qty_available, 14)
+
     def test_cashier_permissions(self):
         cashier = new_test_user(self.env, login="expiry_cashier_test", groups="point_of_sale.group_pos_user")
         with self.assertRaises(AccessError), self.cr.savepoint():
