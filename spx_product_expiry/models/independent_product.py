@@ -37,6 +37,10 @@ class ProductTemplate(models.Model):
                 ("product_tmpl_id", "=", product.id), ("quantity", ">", 0)
             ]):
                 raise ValidationError(self.env._("Clear or reconcile remaining expiry quantities before disabling Independent Expiry."))
+            if not product.spx_expiry_enabled and self.env["spx.expiry.movement"].sudo().search_count([
+                ("batch_id.product_tmpl_id", "=", product.id), "|", ("pos_line_id", "!=", False), ("move_line_id", "!=", False)
+            ]):
+                raise ValidationError(self.env._("Keep Independent Expiry enabled for products with expiry transaction history so returns remain traceable."))
 
     @api.model
     def _load_pos_data_fields(self, config):

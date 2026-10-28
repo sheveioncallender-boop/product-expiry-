@@ -2,7 +2,7 @@ from datetime import timedelta
 from copy import deepcopy
 from odoo import fields
 from odoo.exceptions import AccessError, UserError, ValidationError
-from odoo.tests import tagged
+from odoo.tests import tagged, Form
 from odoo.tests.common import new_test_user
 from odoo.addons.point_of_sale.tests.common import TestPoSCommon
 
@@ -161,6 +161,24 @@ class TestIndependentExpiry(TestPoSCommon):
         self.assertIn(b"Expiry medicine", html)
         self.assertIn("spx.expiry.batch", self.pos_session._load_pos_data_models(self.config))
         self.assertIn("spx_expiry_batch_id", self.env["pos.order.line"]._load_pos_data_fields(self.config))
+
+    def test_product_form_allocation_and_asset_bundle(self):
+        self.b.quantity = 12
+        with Form(self.product.product_tmpl_id, view="product.product_template_only_form_view") as form:
+            with form.spx_independent_batch_ids.new() as batch:
+                batch.name = "From product screen"
+                batch.expiry_date = self.b.expiry_date
+                batch.quantity = 1
+        self.assertEqual(self.Batch._summary(self.product, self.env.company)["assigned"], 23)
+        bundle = self.env["ir.qweb"]._get_asset_bundle("point_of_sale._assets_pos", css=False, js=True, debug_assets=True)
+        template_js = bundle.generate_xml_bundle()
+        self.assertNotIn('throw new Error', template_js)
+        self.assertIn('spx-expiry-label', template_js)
+        javascript = bundle.js().raw.decode()
+        self.assertIn('@spx_product_expiry/pos/expiry', javascript)
+        for dependency in ["@point_of_sale/app/services/pos_store", "@point_of_sale/app/models/pos_order_line",
+                           "@point_of_sale/app/utils/order_payment_validation", "@point_of_sale/app/components/popups/selection_popup/selection_popup"]:
+            self.assertIn('odoo.define(' + repr(dependency), javascript)
 
     def test_completed_line_and_tracking_change_blocked(self):
         order, _ = self._order()
